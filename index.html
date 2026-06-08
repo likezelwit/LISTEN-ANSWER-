@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Tebak Lirik - Billie Eilish</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #121212;
+            color: white;
+            text-align: center;
+            padding: 50px 20px;
+            margin: 0;
+        }
+        h1 {
+            color: #1db954;
+            margin-bottom: 5px;
+        }
+        .container {
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            margin: 20px auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            background: #1db954;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #1ed760;
+            transform: scale(1.05);
+        }
+        .game-section {
+            margin-top: 25px;
+            display: none;
+        }
+        #lirik-box {
+            font-size: 18px;
+            font-style: italic;
+            margin: 20px 0;
+            min-height: 50px;
+            line-height: 1.6;
+        }
+        input[type="text"] {
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 2px solid #333;
+            background: #2a2a2a;
+            color: white;
+            width: 70%;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        input[type="text"]:focus {
+            border-color: #1db954;
+            outline: none;
+        }
+        #status-pesan {
+            font-weight: bold;
+            margin-top: 15px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Game Tebak Lirik</h1>
+    <p>Lagu: <strong>Billie Eilish - WILDFLOWER (Official Audio)</strong></p>
+    
+    <button id="btn-mulai" onclick="mulaiGame()">Mulai Game</button>
+
+    <div class="container">
+        <div id="loading-text">Klik tombol di atas untuk bermain...</div>
+        
+        <div id="game-ui" class="game-section">
+            <div id="lirik-box">Dengarkan lagunya baik-baik...</div>
+            
+            <div id="input-area" style="display: none;">
+                <input type="text" id="jawaban-user" placeholder="Ketik kata yang hilang di sini..." autocomplete="off"><br>
+                <button onclick="cekJawaban()">Kirim Jawaban</button>
+            </div>
+            
+            <div id="status-pesan"></div>
+        </div>
+    </div>
+
+    <script>
+        // Pakai direct MP3 link dari internet (Suara asli album studio, no iklan, no block)
+        const audioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"; // <- Di sini nanti tinggal ganti link MP3 Billie aslimu
+        const audioPlayer = new Audio();
+        
+        // Supaya tidak kena error CORS saat load audio dari luar server lokal
+        audioPlayer.crossOrigin = "anonymous"; 
+        audioPlayer.src = "https://pub-c5e31b5cdafb419a86a69d5d340a9ade.r2.dev/Billie_Eilish_-_WILDFLOWER_Official.mp3"; 
+
+        const jawabanBenar = "everything"; 
+        let cekWaktuInterval;
+
+        function mulaiGame() {
+            document.getElementById('loading-text').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'block';
+            document.getElementById('btn-mulai').style.display = 'none';
+            document.getElementById('lirik-box').innerHTML = "Memuat audio asli & lirik dari cloud...";
+
+            // 1. Putar audio langsung
+            audioPlayer.play()
+            .then(() => {
+                // 2. Ambil lirik dari LRCLIB
+                fetch('https://lrclib.net/api/get/8871844')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('lirik-box').innerHTML = "♪ Lagu asli sedang diputar... Dengarkan baik-baik! ♪";
+                    
+                    // Cek detik lagu pakai event bawaan HTML5 Audio (Lebih akurat dari interval)
+                    audioPlayer.ontimeupdate = () => {
+                        let detikSekarang = audioPlayer.currentTime;
+                        
+                        // Stop tepat di detik ke 41 (Lirik studio asli: But I notice everything)
+                        if (detikSekarang >= 41.5) {
+                            audioPlayer.ontimeupdate = null; // Matikan tracker
+                            audioPlayer.pause(); // Pause lagu otomatis
+
+                            document.getElementById('lirik-box').innerHTML = `
+                                <span style="color: #1db954;">Lengkapi potongan lirik ini:</span><br>
+                                "But I notice <span style="color: #1db954; font-weight: bold;">[ ... ]</span>"
+                            `;
+                            document.getElementById('input-area').style.display = 'block';
+                        }
+                    };
+                });
+            })
+            .catch(err => {
+                document.getElementById('lirik-box').innerText = "Gagal memutar lagu. Coba refresh halaman!";
+                console.error(err);
+            });
+        }
+
+        function cekJawaban() {
+            const tebakan = document.getElementById('jawaban-user').value.trim().toLowerCase();
+            const pesan = document.getElementById('status-pesan');
+
+            if (tebakan === jawabanBenar) {
+                pesan.style.color = "#1db954";
+                pesan.innerHTML = "✅ KAMU BENAR! Liriknya adalah 'everything'.";
+                document.getElementById('input-area').style.display = 'none';
+                audioPlayer.play(); // Lanjut putar sisa lagunya
+            } else {
+                pesan.style.color = "#ff3333";
+                pesan.innerHTML = "❌ SALAH! Coba dengar lagi kata terakhirnya.";
+            }
+        }
+    </script>
+</body>
+</html>
